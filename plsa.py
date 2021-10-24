@@ -48,8 +48,14 @@ class Corpus(object):
         # #############################
         # your code here
         # #############################
-        
-        pass    # REMOVE THIS
+        f = open(self.documents_path,'r')
+
+        for line in f:
+            line_strip = line.strip('01')
+            line_list = line_strip.split()
+            self.documents.append(line_list)
+            self.number_of_documents = self.number_of_documents + 1
+        #pass    # REMOVE THIS
 
     def build_vocabulary(self):
         """
@@ -61,8 +67,12 @@ class Corpus(object):
         # #############################
         # your code here
         # #############################
-        
-        pass    # REMOVE THIS
+
+        #pass    # REMOVE THIS
+        docs = np.array(self.documents, dtype=object)
+        self.vocabulary = np.unique(docs)
+
+        self.vocabulary_size = len(self.vocabulary)
 
     def build_term_doc_matrix(self):
         """
@@ -75,8 +85,13 @@ class Corpus(object):
         # your code here
         # ############################
         
-        pass    # REMOVE THIS
-
+        #pass    # REMOVE THIS
+        self.term_doc_matrix = np.zeros([self.number_of_documents, self.vocabulary_size], dtype = np.int)
+        for i, doc in enumerate(self.documents):
+            for word in doc:
+                if word in self.vocabulary:
+                    j = np.where(self.vocabulary == word)
+                    self.term_doc_matrix[i,j] = self.term_doc_matrix[i,j] + 1
 
     def initialize_randomly(self, number_of_topics):
         """
@@ -90,8 +105,12 @@ class Corpus(object):
         # your code here
         # ############################
 
-        pass    # REMOVE THIS
-        
+        #pass    # REMOVE THIS
+        self.document_topic_prob = np.random.random_sample((self.number_of_documents, number_of_topics))
+        self.document_topic_prob = normalize(self.document_topic_prob)
+
+        self.topic_word_prob = np.random.random_sample((number_of_topics, len(self.vocabulary)))
+        self.topic_word_prob = normalize(self.topic_word_prob)
 
     def initialize_uniformly(self, number_of_topics):
         """
@@ -125,8 +144,17 @@ class Corpus(object):
         # your code here
         # ############################
 
-        pass    # REMOVE THIS
-            
+        #pass    # REMOVE THIS
+
+        sum_n = np.zeros([self.topic_prob.shape[1]], dtype=float)
+
+        for d in range(self.number_of_documents):
+            for w in range(self.vocabulary_size):
+                for z in range(self.topic_prob.shape[1]):
+                    sum_n[z] = self.document_topic_prob[d, z] * self.topic_word_prob[z, w]
+                sum_d = np.sum(sum_n)
+                for z in range(self.topic_prob.shape[1]):
+                    self.topic_prob[d, z, w] = sum_n[z] / sum_d
 
     def maximization_step(self, number_of_topics):
         """ The M-step updates P(w | z)
@@ -138,7 +166,14 @@ class Corpus(object):
         # ############################
         # your code here
         # ############################
-
+        for z in range(number_of_topics):
+            sum_n = np.zeros([self.vocabulary_size], dtype = float)
+            for w in range(self.vocabulary_size):
+                for d in range(self.number_of_documents):
+                    sum_n[w] = sum_n[w] + self.term_doc_matrix[d,w] * self.topic_prob[d,z,w]
+            sum_d = np.sum(sum_n)
+            for w in range(self.vocabulary_size):
+                self.topic_word_prob[z,w] = sum_n[w] / sum_d
         
         # update P(z | d)
 
@@ -146,8 +181,15 @@ class Corpus(object):
         # your code here
         # ############################
         
-        pass    # REMOVE THIS
-
+        #pass    # REMOVE THIS
+        for d in range(self.number_of_documents):
+            sum_n = np.zeros([number_of_topics], dtype = float)
+            for z in range(number_of_topics):
+                for w in range(self.vocabulary_size):
+                    sum_n[z] = sum_n[z] + self.term_doc_matrix[d,w] * self.topic_prob[d,z,w]
+            sum_d = np.sum(sum_n)
+            for z in range(number_of_topics):
+                self.document_topic_prob[d,z] = sum_n[z] / sum_d
 
     def calculate_likelihood(self, number_of_topics):
         """ Calculate the current log-likelihood of the model using
@@ -159,8 +201,17 @@ class Corpus(object):
         # ############################
         # your code here
         # ############################
-        
-        return
+        sum_ll = 0
+
+        for d in range(self.number_of_documents):
+            for w in range(self.vocabulary_size):
+                for z in range(number_of_topics):
+                    sum_ll = sum_ll + self.term_doc_matrix[d, w] * np.log(
+                        self.document_topic_prob[d, z] * self.topic_word_prob[z, w])
+
+        self.likelihoods.append(sum_ll)
+
+        return sum_ll
 
     def plsa(self, number_of_topics, max_iter, epsilon):
 
@@ -190,8 +241,16 @@ class Corpus(object):
             # your code here
             # ############################
 
-            pass    # REMOVE THIS
+            #pass    # REMOVE THIS
+            self.expectation_step()
+            self.maximization_step(number_of_topics)
+            current_likelihood = self.calculate_likelihood(number_of_topics)
 
+            print(current_likelihood)
+
+            if iteration > 0:
+                if abs(current_likelihood - self.likelihoods[iteration - 1]) <= epsilon:
+                    break
 
 
 def main():
