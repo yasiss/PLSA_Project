@@ -1,4 +1,4 @@
-# MP3: Implementing the PLSA Algorithm
+# Implementing the PLSA Algorithm
 ## Project for "Text Transformation Systems and Text Mining" UIUC - Fall 2021
 
 In this MP, I implemented the PLSA algorithm (we will run tests assuming the background model has not been implemented). There are provided with two data sets in the `data` folder: `test.txt` and `dblp.txt`. We can assume that each line is a separate document.
